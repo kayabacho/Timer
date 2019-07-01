@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <title>Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="card-deck col-12 mt-5">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-8">
+                                <span id="name"></span>
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-block btn-primary" id="start">Start</button>
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-block btn-secondary" id="next">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-header border-secondary">
+                        <input type="range" class="custom-range col-10" min="1" max="60" value="5"
+                            id="minitesPerPerson">
+                        <span id="minitesPerPersonValue">5</span> min
+                    </div>
+                    <div class="card-header border-success">
+                        <div class="row">
+                            <div class="col-2">
+                                <span id="elapsed">00:00</span>
+                            </div>
+                            <div class="col-8">
+                                <div id="progress" class="progress">
+                                    <div id="progressbar" class="progress-bar bg-success" role="progressbar"
+                                        style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            <div class="col-2">
+                                <span id="remain">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5>Members</h5>
+                        <form class="card-text">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="form-group">
+                                        <textarea class="form-control" id="members" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <button type="button" class="btn btn-block btn-success" id="update">Update</button>
+                                    <br>
+                                    <small class="text-muted">
+                                        Last updated at <span id="lastUpdated"></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap.native/2.0.15/bootstrap-native-v4.min.js"></script>
+    <script>
+        var countdownTimer;
+
+        dateFormat = {
+            _fmt: {
+                "yyyy": function (date) { return date.getFullYear() + ''; },
+                "MM": function (date) { return ('0' + (date.getMonth() + 1)).slice(-2); },
+                "dd": function (date) { return ('0' + date.getDate()).slice(-2); },
+                "hh": function (date) { return ('0' + date.getHours()).slice(-2); },
+                "mm": function (date) { return ('0' + date.getMinutes()).slice(-2); },
+                "ss": function (date) { return ('0' + date.getSeconds()).slice(-2); }
+            },
+            _priority: ["yyyy", "MM", "dd", "hh", "mm", "ss"],
+            format: function (date, format) {
+                return this._priority.reduce((res, fmt) => res.replace(fmt, this._fmt[fmt](date)), format)
+            }
+        };
+
+        function countdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            const SEC = Number(document.getElementById("minitesPerPerson").value) * 60;
+
+            var startDate = new Date(),
+                endDate = new Date();
+            endDate.setSeconds(startDate.getSeconds() + SEC);
+
+            var name = document.getElementById("name").innerHTML;
+            if (typeof name === "undefined" || name === null || name === "") {
+                var array = document.getElementById("members").value.split("\n");
+                array = array.filter(v => v);
+                if (array.length == 0) {
+                    return false;
+                }
+
+                document.getElementById("name").innerHTML = array[0];
+            }
+
+            countdownTimer = setInterval(function () {
+                var nowDate = new Date();
+                var elapsed = nowDate - startDate; // msec
+                var remain = endDate - nowDate; // msec
+                var percent = Math.round(100.0 * elapsed / (elapsed + remain));
+
+                document.getElementById("elapsed").innerHTML = dateFormat.format(new Date(1000 * Math.floor(elapsed / 1000)), 'mm:ss');
+
+                if (remain < 500) {
+                    document.getElementById("remain").innerHTML = "00:00";
+                } else if (remain >= 0) {
+                    document.getElementById("remain").innerHTML = dateFormat.format(new Date(1000 * Math.ceil(remain / 1000)), 'mm:ss');
+                }
+
+                updateProgress(percent);
+                if (remain < 0) {
+                    clearInterval(countdownTimer);
+                }
+            }, 100);
+        }
+
+        function next() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            var name = document.getElementById("name").innerHTML;
+            var array = document.getElementById("members").value.split("\n");
+            array = array.filter(v => v);
+            if (array.length == 0) {
+                return false;
+            }
+            for (var i = array.length - 1; i >= 0; i--) {
+                if (array[i] == name) {
+                    if (i < array.length - 1) {
+                        document.getElementById("name").innerHTML = array[i + 1];
+
+                        updateProgress(0);
+                        document.getElementById("elapsed").innerHTML = "00:00";
+                        document.getElementById("remain").innerHTML = "00:00";
+                    }
+                }
+            }
+        }
+
+        function shuffle() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            var array = document.getElementById("members").value.split("\n");
+            array = array.filter(v => v);
+            if (array.length == 0) {
+                return false;
+            }
+
+            var lastMember = array[array.length - 1];
+
+            for (var i = array.length - 1; i > 0; i--) {
+                var r = Math.floor(Math.random() * (i + 1));
+                var tmp = array[i];
+                array[i] = array[r];
+                array[r] = tmp;
+            }
+
+            if (array[0] != lastMember) {
+                document.getElementById("members").value = (array.join("\n"));
+                document.getElementById("name").innerHTML = array[0];
+                return true;
+            } else {
+                return shuffle();
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressbar').style.width = percent + "%";
+            document.getElementById('progressbar').setAttribute("aria-valuenow", percent);
+
+            if (percent < 80) {
+                document.getElementById('progressbar').classList.remove('bg-warning');
+                document.getElementById('progressbar').classList.remove('bg-danger');
+
+                document.getElementById('progressbar').classList.add('bg-success');
+            } else if (percent < 90) {
+                document.getElementById('progressbar').classList.remove('bg-success');
+                document.getElementById('progressbar').classList.remove('bg-danger');
+
+                document.getElementById('progressbar').classList.add('bg-warning');
+            } else {
+                document.getElementById('progressbar').classList.remove('bg-success');
+                document.getElementById('progressbar').classList.remove('bg-warning');
+
+                document.getElementById('progressbar').classList.add('bg-danger');
+            }
+
+        }
+
+        document.getElementById("minitesPerPerson").addEventListener("input", function () {
+            document.getElementById("minitesPerPersonValue").innerHTML = document.getElementById("minitesPerPerson").value;
+        });
+
+        document.getElementById("next").addEventListener("click", function () {
+            next();
+        });
+
+        document.getElementById("start").addEventListener("click", function () {
+            countdown();
+        });
+
+        document.getElementById("update").addEventListener("click", function () {
+            updateProgress(0);
+            document.getElementById("elapsed").innerHTML = "00:00";
+            document.getElementById("remain").innerHTML = "00:00";
+
+            shuffle();
+
+            document.getElementById("lastUpdated").innerHTML = dateFormat.format(new Date(), 'hh:mm:ss')
+        });
+    </script>
+</body>
+
+</html>
